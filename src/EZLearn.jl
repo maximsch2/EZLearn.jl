@@ -1,3 +1,5 @@
+__precompile__()
+
 module EZLearn
 
 using OBOParse
@@ -27,6 +29,11 @@ function ezlearn_step(task::EZLearnTask)
     end
 end
 
+train_and_predict(v::ClassifierView, labels, task) = error("not implemented")
+construct_labels(v::ClassifierView, beliefs, task) = error("not implemented")
+
 include("beliefs.jl")
+
+export EZLearnTask, BeliefDict, BeliefSQLite, get_beliefs, intersect_labels_core, intersect_labels_simple, ezlearn_step, store_beliefs, get_all_samples
 
 end

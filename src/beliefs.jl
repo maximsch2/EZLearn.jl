@@ -195,3 +195,62 @@ function threshold_beliefs{T<:Belief}(beliefs::T, threshold)
     result
 end
 
+
+function remove_redundant(ontology, terms::Vector{Term}, rels::Vector{Symbol})
+    if length(terms) <= 1
+        return terms
+    end
+
+    terms = unique(terms)
+    termSet = Set(terms)
+    n = length(terms)
+    keep = ones(Bool, n)
+    for i in 1:n
+        desc = descendants(ontology, terms[i], rels)
+        keep[i] = length(intersect(desc, termSet)) == 0
+    end
+
+    terms[keep]
+end
+
+
+
+getterm(t::Integer, ontology) = gettermbyid(ontology, t)
+function getterm(t::String, ontology)
+    if haskey(ontology.terms, t)
+        return ontology[t]
+    else
+        return gettermbyid(ontology, parse(Int, t))
+    end
+end
+
+
+
+function threshold_beliefs_nonred(ontology, beliefs, threshold, rels)
+    result = Dict{String, Vector{String}}()
+    for gsm in get_all_samples(beliefs)
+        terms = get_beliefs(beliefs, gsm; thresh=threshold)
+        if length(terms) > 0
+            #termsids = String[t[1] for t in terms]
+            termobjs = Term[getterm(t[1], ontology) for t in terms]
+            nonred = remove_redundant(ontology, termobjs, rels)
+            @assert length(nonred) > 0
+            result[gsm] = String[t.id for t in nonred]
+        end
+    end
+    result
+end
+
+
+function remove_redundant_beliefs(ontology, beliefs, rels)
+    result = Dict{String, Vector{String}}()
+    for gsm in keys(beliefs)
+        terms = beliefs[gsm]
+        if length(terms) > 0
+            termobjs = Term[gettermbyid(ontology, t) for t in terms]
+            nonred = remove_redundant(ontology, termobjs, rels)
+            result[gsm] = String[t.id for t in nonred]
+        end
+    end
+    result
+end
