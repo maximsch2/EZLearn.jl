@@ -21,7 +21,7 @@ end
 
 function ezlearn_step(task::EZLearnTask)
     for v in task.views
-        @show v
+        @show typeof(v)
         labels = construct_labels(v, task.beliefs, task)
         belief, model = train_and_predict(v, labels, task)
         push!(task.beliefs[v.id], BeliefDict(belief))
