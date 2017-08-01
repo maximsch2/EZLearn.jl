@@ -85,26 +85,23 @@ function store_beliefs(bs::BeliefSerializer, belief::BeliefDict, tblname; thresh
 
     has_table && overwrite && SQLite.execute!(bs.db, "DROP TABLE $tblname")
 
-    SQLite.transaction(bs.db, "") #do
-        SQLite.execute!(bs.db, "CREATE TABLE $tblname (sample_id INTEGER, term_id INTEGER, prob REAL)")
-        stmt = SQLite.Stmt(bs.db,  "INSERT INTO $tblname (sample_id, term_id, prob) VALUES (?, ?, ?)")
-        for (sample, values) in belief.dict
-            sid = get_sample_id(bs, sample)
-            for (term, prob) in values
-                prob < thresh && continue
+    SQLite.execute!(bs.db, "CREATE TABLE $tblname (sample_id INTEGER, term_id INTEGER, prob REAL)")
+    stmt = SQLite.Stmt(bs.db,  "INSERT INTO $tblname (sample_id, term_id, prob) VALUES (?, ?, ?)")
+    for (sample, values) in belief.dict
+        sid = get_sample_id(bs, sample)
+        for (term, prob) in values
+            prob < thresh && continue
 
-                tid = get_term_id(bs, term)
-                SQLite.bind!(stmt, [sid, tid, prob])
-                SQLite.execute!(stmt)
-            end
+            tid = get_term_id(bs, term)
+            SQLite.bind!(stmt, [sid, tid, prob])
+            SQLite.execute!(stmt)
         end
-        SQLite._close(stmt)
-        SQLite.execute!(bs.db, "CREATE INDEX $(tblname)_sample_id_idx on $tblname (sample_id)")
-        SQLite.execute!(bs.db, "CREATE VIEW $(tblname)_v(sample, term, prob) as select term_name as term, sample_name as sample, prob " *
-                                            "from $(tblname), terms, samples where $(tblname).sample_id=samples.sample_id and " *
-                                            "$(tblname).term_id=terms.term_id")
-    SQLite.commit(bs.db)
-    #end
+    end
+    SQLite._close(stmt)
+    SQLite.execute!(bs.db, "CREATE INDEX $(tblname)_sample_id_idx on $tblname (sample_id)")
+    SQLite.execute!(bs.db, "CREATE VIEW $(tblname)_v(sample, term, prob) as select term_name as term, sample_name as sample, prob " *
+                                        "from $(tblname), terms, samples where $(tblname).sample_id=samples.sample_id and " *
+                                        "$(tblname).term_id=terms.term_id")
 end
 
 function store_params(db, params)
@@ -117,18 +114,21 @@ end
 
 
 function store_beliefs(task::EZLearnTask, serializer::BeliefSerializer)
-    store_params(serializer.db, task.params)
+    gc() # otherwise transaction might fail due to stale statement objects
+    SQLite.transaction(serializer.db) do
+        store_params(serializer.db, task.params)
 
-    for v in task.views
-        id = v.id
-        beliefs = task.beliefs[id]
-        for (i, belief) in enumerate(beliefs)
-            tbl_name = "$(id)_$i"
-            println("Storing $(tbl_name)....")
-            store_beliefs(serializer, belief, tbl_name)
-            beliefs[i] = BeliefSQLite(serializer.db, tbl_name)
-            gc()
-            println("Done")
+        for v in task.views
+            id = v.id
+            beliefs = task.beliefs[id]
+            for (i, belief) in enumerate(beliefs)
+                tbl_name = "$(id)_$i"
+                println("Storing $(tbl_name)....")
+                store_beliefs(serializer, belief, tbl_name)
+                beliefs[i] = BeliefSQLite(serializer.db, tbl_name)
+                gc()
+                println("Done")
+            end
         end
     end
 end
