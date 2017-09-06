@@ -12,7 +12,7 @@ end
 get_beliefs(b::Belief, sample::String) = error("not implemented")
 
 function get_beliefs(b::BeliefDict, sample::String; thresh=0)
-  result = b.dict[sample]
+  result = get(b.dict, sample, [])
   if thresh > 0
     result = filter(x->x[2]>thresh, result)
   end
