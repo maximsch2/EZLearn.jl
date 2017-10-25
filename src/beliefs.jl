@@ -99,7 +99,7 @@ function store_beliefs(bs::BeliefSerializer, belief::BeliefDict, tblname; thresh
     end
     SQLite._close(stmt)
     SQLite.execute!(bs.db, "CREATE INDEX $(tblname)_sample_id_idx on $tblname (sample_id)")
-    SQLite.execute!(bs.db, "CREATE VIEW $(tblname)_v(sample, term, prob) as select term_name as term, sample_name as sample, prob " *
+    SQLite.execute!(bs.db, "CREATE VIEW $(tblname)_v(sample, term, prob) as select sample_name as sample, term_name as term, prob " *
                                         "from $(tblname), terms, samples where $(tblname).sample_id=samples.sample_id and " *
                                         "$(tblname).term_id=terms.term_id")
 end
