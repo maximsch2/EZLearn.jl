@@ -54,14 +54,14 @@ end
 
 function load_dict(db, tblname)
     rows = SQLite.query(db, "select * from $tblname")
-    Dict(zip(rows[:, 2].values, rows[:, 1].values))
+    Dict(zip(rows[:, 2], rows[:, 1]))
 end
 
 function get_id(val, db, dict, table_name, colname)
     val = string(val)
     get!(dict, val) do
       SQLite.query(db, "INSERT INTO $(table_name)($colname) VALUES (?)", values=[val])
-      id = SQLite.query(db, "select last_insert_rowid()")[1].values[1]
+      id = SQLite.query(db, "select last_insert_rowid()")[1][1]
       id
     end
 end
@@ -76,7 +76,7 @@ function store_beliefs(bs::BeliefSerializer, belief::BeliefSQLite, tblname; thre
     end
 end
 function store_beliefs(bs::BeliefSerializer, belief::BeliefDict, tblname; thresh=0.01, overwrite=true)
-    has_table = tblname in SQLite.tables(bs.db)[:name].values
+    has_table = tblname in SQLite.tables(bs.db)[:name]
 
     if has_table && !overwrite
       warn("requested no overwrite of $tblname which already exists")

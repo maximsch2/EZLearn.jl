@@ -6,8 +6,8 @@ using OBOParse
 using SQLite
 using JSON
 
-abstract ClassifierView
-abstract Belief
+abstract type ClassifierView end
+abstract type Belief end
 
 immutable EZLearnTask
     views::Vector{ClassifierView}
